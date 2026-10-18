@@ -409,6 +409,57 @@ export async function simulateUnlockAssets(
   };
 }
 
+export interface BuildSetBoostTransactionArgs {
+  poolContractId: string;
+  publicKey: string;
+  allocationPercentage: number;
+}
+
+/**
+ * Read-only set_boost simulation for a fee preview — no signing, no
+ * submission. Mirrors the transaction SorobanService.setBoost builds.
+ */
+export async function buildSetBoostTransaction(
+  args: BuildSetBoostTransactionArgs,
+  rpcOverride?: LockAssetsRpc,
+) {
+  const server = rpcOverride ?? rpcServer;
+  const account = await server.getAccount(args.publicKey);
+  const contract = new Contract(args.poolContractId);
+  const operation = contract.call(
+    'set_boost',
+    Address.fromString(args.publicKey).toScVal(),
+    nativeToScVal(args.allocationPercentage, { type: 'u32' }),
+  );
+
+  return new TransactionBuilder(account, {
+    fee: BASE_FEE,
+    networkPassphrase,
+  })
+    .addOperation(operation)
+    .setTimeout(300)
+    .build();
+}
+
+export async function simulateSetBoost(
+  args: BuildSetBoostTransactionArgs,
+  rpcOverride?: LockAssetsRpc,
+) {
+  const server = rpcOverride ?? rpcServer;
+  const transaction = await buildSetBoostTransaction(args, server);
+  const simulation = await server.simulateTransaction(transaction);
+
+  if ('error' in simulation) {
+    throw new Error(`Simulation failed: ${simulation.error}`);
+  }
+
+  return {
+    transaction,
+    simulation,
+    feePreview: String(simulation.minResourceFee ?? '0'),
+  };
+}
+
 /**
  * Unwraps Freighter's signTransaction response, verifying that the account
  * which actually signed (`result.signerAddress`) is the account SmartDrop

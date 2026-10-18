@@ -221,6 +221,59 @@ export const useUnlockAssetsFeePreview = (args: {
 };
 
 /**
+ * Live, debounced fee preview for set_boost so BoostModal can show the
+ * estimated fee before the Freighter signing prompt. Debounced on the
+ * slider value so dragging doesn't fire a simulation per step.
+ */
+export const useSetBoostFeePreview = (args: {
+  publicKey?: string | null;
+  poolContractId?: string | null;
+  allocationPercentage?: number | null;
+  enabled?: boolean;
+}) => {
+  const allocation = args.allocationPercentage ?? null;
+  const [debouncedAllocation, setDebouncedAllocation] = useState<number | null>(null);
+
+  useEffect(() => {
+    const id = setTimeout(
+      () => setDebouncedAllocation(allocation),
+      LOCK_ASSETS_FEE_PREVIEW_DEBOUNCE_MS,
+    );
+    return () => clearTimeout(id);
+  }, [allocation]);
+
+  const isDebouncing = allocation !== debouncedAllocation;
+
+  const query = useQuery({
+    queryKey: [
+      'setBoostFeePreview',
+      args.publicKey,
+      args.poolContractId,
+      debouncedAllocation,
+    ],
+    queryFn: async () =>
+      (await loadSoroban()).simulateSetBoost({
+        publicKey: args.publicKey!,
+        poolContractId: args.poolContractId!,
+        allocationPercentage: debouncedAllocation!,
+      }),
+    enabled:
+      (args.enabled ?? true) &&
+      !!args.publicKey &&
+      !!args.poolContractId &&
+      debouncedAllocation !== null &&
+      Number.isInteger(debouncedAllocation) &&
+      debouncedAllocation >= 0 &&
+      debouncedAllocation <= 100,
+    staleTime: 10000,
+    gcTime: 5 * 60 * 1000,
+    retry: 1,
+  });
+
+  return { ...query, isFetching: query.isFetching || isDebouncing };
+};
+
+/**
  * Hook to lock assets in a pool.
  *
  * Accepts an optional onStep callback so callers can drive step-by-step UI

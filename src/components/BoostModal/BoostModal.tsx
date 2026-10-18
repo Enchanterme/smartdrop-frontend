@@ -6,7 +6,7 @@ import {
 } from "@/config";
 import TransactionConfirmModal from "@/components/TransactionConfirmModal/TransactionConfirmModal";
 import { useStellarWallet } from "@/context/StellarWalletContext";
-import { useSetBoost } from "@/hooks/useSorobanQuery";
+import { useSetBoost, useSetBoostFeePreview } from "@/hooks/useSorobanQuery";
 import { trackEvent } from "@/lib/analytics";
 import { useFarmStore } from "@/store/farmStore";
 import {
@@ -51,6 +51,12 @@ export default function BoostModal() {
     const sliderThumbRef = useRef<HTMLDivElement>(null);
 
     const selectedPoolContractId = position?.contractAddress || poolContractId;
+    const feePreview = useSetBoostFeePreview({
+        publicKey,
+        poolContractId: selectedPoolContractId,
+        allocationPercentage: allocation,
+        enabled: isBoost && !!position && position.lockedAmount > 0 && allocation !== currentBoost,
+    });
 
     useEffect(() => {
         if (isBoost && position) {
@@ -299,6 +305,11 @@ export default function BoostModal() {
                     { label: "New boost", value: `${allocation}%` },
                     { label: "Your stake", value: `${position.stake} ${position.symbol}` },
                 ]}
+                fee={{
+                    minResourceFee: feePreview.data?.feePreview,
+                    isLoading: feePreview.isFetching,
+                    isError: feePreview.isError,
+                }}
                 warning="This allocation applies to all future credit emissions until you change it."
                 confirmLabel="Confirm Boost"
             />

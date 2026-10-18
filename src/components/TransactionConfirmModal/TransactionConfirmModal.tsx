@@ -10,13 +10,24 @@ import {
     Box,
     Button,
     Flex,
+    Spinner,
     Text,
 } from "@chakra-ui/react";
 import { useRef, type ReactNode } from "react";
+import { formatFeeEstimate } from "@/lib/fees";
 
 export interface TransactionDetail {
     label: string;
     value: ReactNode;
+}
+
+export interface TransactionFeeEstimate {
+    /** Simulated Soroban `minResourceFee` in stroops. */
+    minResourceFee?: string | null;
+    isLoading?: boolean;
+    isError?: boolean;
+    /** The fee is paid by the SmartDrop fee sponsor, not the user. */
+    isSponsored?: boolean;
 }
 
 export interface TransactionConfirmModalProps {
@@ -28,6 +39,11 @@ export interface TransactionConfirmModalProps {
     details: TransactionDetail[];
     /** Extra caution shown above the actions, e.g. irreversibility notes. */
     warning?: ReactNode;
+    /**
+     * Estimated network fee, shown as its own row. Confirm stays disabled
+     * while the estimate is loading so users never sign without seeing it.
+     */
+    fee?: TransactionFeeEstimate;
     confirmLabel?: string;
     cancelLabel?: string;
 }
@@ -44,10 +60,13 @@ export default function TransactionConfirmModal({
     description,
     details,
     warning,
+    fee,
     confirmLabel = "Confirm",
     cancelLabel = "Cancel",
 }: TransactionConfirmModalProps) {
     const cancelRef = useRef<HTMLButtonElement>(null);
+    const feeLabel = fee ? formatFeeEstimate(fee.minResourceFee) : null;
+    const isFeeLoading = !!fee?.isLoading;
 
     return (
         <AlertDialog
@@ -96,7 +115,46 @@ export default function TransactionConfirmModal({
                                     </Text>
                                 </Flex>
                             ))}
+                            {fee && (
+                                <Flex
+                                    justify="space-between"
+                                    fontSize="sm"
+                                    py={1}
+                                    gap={4}
+                                >
+                                    <Text as="dt" color="app.muted">
+                                        Estimated network fee
+                                    </Text>
+                                    <Text
+                                        as="dd"
+                                        textAlign="right"
+                                        fontWeight="semibold"
+                                        aria-live="polite"
+                                        aria-busy={isFeeLoading}
+                                    >
+                                        {isFeeLoading ? (
+                                            <Flex as="span" align="center" gap={2}>
+                                                <Spinner size="xs" />
+                                                Estimating…
+                                            </Flex>
+                                        ) : fee.isError || !feeLabel ? (
+                                            "Unavailable"
+                                        ) : fee.isSponsored ? (
+                                            `${feeLabel} (sponsored)`
+                                        ) : (
+                                            feeLabel
+                                        )}
+                                    </Text>
+                                </Flex>
+                            )}
                         </Box>
+                        {fee && !isFeeLoading && (
+                            <Text fontSize="xs" color="app.muted">
+                                {fee.isError || !feeLabel
+                                    ? "We couldn't estimate the network fee. Freighter will show the final fee before you sign."
+                                    : "Estimated from a simulation of this transaction. The final fee is set by the network and may differ slightly."}
+                            </Text>
+                        )}
                         {warning && (
                             <Box
                                 borderRadius="2xl"
@@ -125,6 +183,7 @@ export default function TransactionConfirmModal({
                         color="app.onAccent"
                         _hover={{ opacity: 0.9 }}
                         onClick={onConfirm}
+                        isDisabled={isFeeLoading}
                     >
                         {confirmLabel}
                     </Button>

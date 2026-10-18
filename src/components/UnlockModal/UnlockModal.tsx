@@ -18,6 +18,7 @@ import {
     type UserPosition,
 } from "@/lib/soroban";
 import { QUERY_KEYS, useUnlockAssetsFeePreview } from "@/hooks/useSorobanQuery";
+import { formatFeeEstimate } from "@/lib/fees";
 import { useFarmStore } from "@/store/farmStore";
 import { unlockAvailableAt } from "@/types/farm";
 import { useQueryClient } from "@tanstack/react-query";
@@ -485,7 +486,7 @@ export default function UnlockModal() {
                     feePreview.isFetching
                       ? "Simulating..."
                       : feePreview.data
-                        ? `${feePreview.data.feePreview} stroops`
+                        ? formatFeeEstimate(feePreview.data.feePreview) ?? "Unavailable"
                         : "Unavailable",
                   )}
                 </Box>
@@ -587,11 +588,12 @@ export default function UnlockModal() {
           { label: "Unlock amount", value: `${numericAmount} ${position.symbol}` },
           { label: "Remaining stake", value: `${remainingStake.toFixed(4)} ${position.symbol}` },
           { label: "New daily rate", value: `${newDailyRate.toFixed(6)} credits/day` },
-          {
-            label: "Estimated Soroban fee",
-            value: feePreview.data ? `${feePreview.data.feePreview} stroops` : "Unavailable",
-          },
         ]}
+        fee={{
+          minResourceFee: feePreview.data?.feePreview,
+          isLoading: feePreview.isFetching,
+          isError: feePreview.isError,
+        }}
         warning={
           numericAmount < position.lockedAmount
             ? "Unlocked assets stop earning credits once the transaction confirms."

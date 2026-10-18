@@ -55,6 +55,39 @@ describe("TransactionConfirmModal", () => {
     expect(props.onConfirm).not.toHaveBeenCalled();
   });
 
+  it("shows the estimated network fee in XLM", () => {
+    renderModal({ fee: { minResourceFee: "12345" } });
+
+    expect(screen.getByText("Estimated network fee")).toBeTruthy();
+    expect(screen.getByText("~0.0012445 XLM")).toBeTruthy();
+    expect(
+      (screen.getByRole("button", { name: "Confirm Deposit" }) as HTMLButtonElement).disabled,
+    ).toBe(false);
+  });
+
+  it("disables confirm while the fee is still being estimated", () => {
+    const props = renderModal({ fee: { isLoading: true } });
+
+    expect(screen.getByText("Estimating…")).toBeTruthy();
+    const confirm = screen.getByRole("button", { name: "Confirm Deposit" }) as HTMLButtonElement;
+    expect(confirm.disabled).toBe(true);
+    fireEvent.click(confirm);
+    expect(props.onConfirm).not.toHaveBeenCalled();
+  });
+
+  it("marks the fee unavailable when simulation fails", () => {
+    renderModal({ fee: { isError: true } });
+
+    expect(screen.getByText("Unavailable")).toBeTruthy();
+    expect(screen.getByText(/couldn't estimate the network fee/i)).toBeTruthy();
+  });
+
+  it("labels sponsored fees", () => {
+    renderModal({ fee: { minResourceFee: "12345", isSponsored: true } });
+
+    expect(screen.getByText("~0.0012445 XLM (sponsored)")).toBeTruthy();
+  });
+
   it("renders nothing when closed", () => {
     renderModal({ isOpen: false });
 

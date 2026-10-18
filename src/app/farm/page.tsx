@@ -247,7 +247,7 @@ function DepositModal({
                   {feePreview.isFetching
                     ? "Simulating..."
                     : feePreview.data
-                      ? `${feePreview.data.feePreview} stroops`
+                      ? formatFeeEstimate(feePreview.data.feePreview) ?? "Unavailable"
                       : "Enter amount"}
                 </Text>
               </Flex>
@@ -408,11 +408,13 @@ function DepositModal({
           { label: "Pool", value: farm.name },
           { label: "Deposit amount", value: `${trimmedAmount} ${farm.symbol}` },
           { label: "Minimum lock period", value: lockPeriod },
-          {
-            label: "Estimated Soroban fee",
-            value: feePreview.data ? `${feePreview.data.feePreview} stroops` : "Unavailable",
-          },
         ]}
+        fee={{
+          minResourceFee: feePreview.data?.feePreview,
+          isLoading: feePreview.isFetching,
+          isError: feePreview.isError,
+          isSponsored: isFeeSponsored,
+        }}
         warning={`Deposited funds stay locked for at least ${lockPeriod} and can't be withdrawn before then.`}
         confirmLabel="Confirm Deposit"
       />

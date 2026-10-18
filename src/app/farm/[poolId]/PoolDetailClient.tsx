@@ -35,6 +35,7 @@ import { useLockFlow } from "@/hooks/useLockFlow";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   usePoolDepositors,
+  useLockAssetsFeePreview,
   usePools,
   useStellarBalance,
   useUserCredits,
@@ -536,6 +537,12 @@ export default function PoolDetailClient({ poolId }: { poolId: string }) {
             { label: "Lock amount", value: `${displayAmount} ${pool?.asset.code ?? ""}` },
             { label: "Minimum lock period", value: lockPeriodLabel },
           ]}
+          fee={{
+            minResourceFee: feePreview.data?.feePreview,
+            isLoading: feePreview.isFetching,
+            isError: feePreview.isError,
+            isSponsored: isFeeSponsored,
+          }}
           warning={`This action cannot be reversed until the ${lockPeriodLabel} lock period expires.`}
           confirmLabel="Confirm Lock"
         />
