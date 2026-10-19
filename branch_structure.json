@@ -1,0 +1,18 @@
+{
+  "default_branch": "main",
+  "branches": [
+    "fix/unlock-modal-dynamic-focus-trap",
+    "main",
+    "origin"
+  ],
+  "parent": {
+    "fix/unlock-modal-dynamic-focus-trap": "main",
+    "main": null,
+    "origin": "main"
+  },
+  "order": [
+    "main",
+    "fix/unlock-modal-dynamic-focus-trap",
+    "origin"
+  ]
+}
